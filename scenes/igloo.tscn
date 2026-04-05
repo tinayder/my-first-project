@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://4k1n6t0xd6br"]
+
+[ext_resource type="Script" uid="uid://ddgbymykh28f5" path="res://scripts/igloo.gd" id="1_url4u"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ogl4s"]
+size = Vector2(64, 64)
+
+[node name="Igloo" type="StaticBody2D"]
+script = ExtResource("1_url4u")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_ogl4s")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]

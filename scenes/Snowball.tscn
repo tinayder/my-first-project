@@ -1,0 +1,22 @@
+[gd_scene load_steps=5 format=3 uid="uid://tq73lb5gp7cs"]
+
+[ext_resource type="Script" uid="uid://dk1gs8kehfjpp" path="res://scripts/snowball.gd" id="1_224t7"]
+[ext_resource type="Texture2D" uid="uid://nec0shcnbsba" path="res://assets/images/snowball.png" id="1_ajoi3"]
+[ext_resource type="AudioStream" uid="uid://bxua0nmmhi3s5" path="res://assets/sounds/snowball.mp3" id="3_dtlfo"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ajoi3"]
+radius = 13.038404
+
+[node name="Snowball" type="Area2D"]
+script = ExtResource("1_224t7")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_ajoi3")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_ajoi3")
+
+[node name="Timer" type="Timer" parent="."]
+
+[node name="Sound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_dtlfo")

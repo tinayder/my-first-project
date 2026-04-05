@@ -1,0 +1,47 @@
+[gd_scene load_steps=6 format=3 uid="uid://ci7270jxm86qm"]
+
+[ext_resource type="Script" uid="uid://b3lrpjbcf1t5l" path="res://scripts/online_player.gd" id="1_dcge4"]
+[ext_resource type="Texture2D" uid="uid://bmta1j15sq7ac" path="res://assets/images/hat1.png" id="2_dcge4"]
+[ext_resource type="FontFile" uid="uid://vcy2m80y8opt" path="res://assets/fonts/8bitoperator_jve.ttf" id="3_1dvbc"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1dvbc"]
+radius = 23.021729
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_dcge4"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:health")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:is_dead")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath("Sprite:rotation")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+
+[node name="OnlinePlayer" type="CharacterBody2D"]
+script = ExtResource("1_dcge4")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_dcge4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1dvbc")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_dcge4")
+
+[node name="ChatLabel" type="Label" parent="."]
+offset_left = -38.0
+offset_top = 25.0
+offset_right = 38.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("3_1dvbc")
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="sounds" type="AudioStreamPlayer2D" parent="."]
