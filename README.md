@@ -10,6 +10,7 @@ This is a multiplayer shooter with two maps, you can play this with your friends
 
 1. Download the project
 2. Open "project.godot" in Godot Engine 4.x and run it
+
 Simple, right?
 
 ## Credits
