@@ -16,3 +16,6 @@ Simple, right?
 ## Credits
 
 All is mine, except the gif in the menu, thanks to some good bud who posted this in Internet, I love Internet btw.
+
+
+(and yeah I used AI)
