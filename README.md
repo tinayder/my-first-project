@@ -15,3 +15,5 @@ Simple, right?
 ## Credits
 
 All is mine, except the gif in the menu, thanks to some good bud who posted this in Internet, I love Internet btw.
+
+(and yeah i used ai a bit cuz i can't into network)
