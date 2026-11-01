@@ -1,7 +1,7 @@
 extends Control
 
 
-# Called when the node enters the scene tree for the first time.
+# called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	$Button.pressed.connect(_on_disconnected)
 

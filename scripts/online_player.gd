@@ -4,15 +4,13 @@ const SPEED: float = 200.0
 const MAX_HEALTH: int = 100
 const MAX_AMMO: int = 10
 const SNOWBALL_SCENE: PackedScene = preload("res://scenes/Snowball.tscn")
-const REGEN_AMOUNT: int = 2      # Сколько ХП восстанавливать за "тик"
-const REGEN_TICK_TIME: float = 1.0 # Частота восстановления (раз в секунду)
-const REGEN_DELAY: float = 5.0    # Через сколько секунд после урона начнется реген
+const REGEN_AMOUNT: int = 2      # regeneration
+const REGEN_TICK_TIME: float = 1.0
+const REGEN_DELAY: float = 5.0
 
-# Текстуры команд
 const RED_TEXTURE = preload("res://assets/images/hat1.png")
 const BLUE_TEXTURE = preload("res://assets/images/hat2.png")
 
-# Синхронизируемые переменные
 @export var health: int = MAX_HEALTH
 @export var is_dead: bool = false
 @export var team: int = -1
@@ -24,7 +22,7 @@ var shoot_sound = preload("res://assets/sounds/shoot.mp3")
 var ice_sound = preload("res://assets/sounds/ice.mp3")
 var making_sound = preload("res://assets/sounds/making.mp3")
 
-# Локальные переменные
+# local vars
 var ammo: int = 10
 var is_chatting: bool = false
 var is_reloading: bool = false
@@ -61,8 +59,6 @@ func _ready() -> void:
 	else:
 		_request_initial_state.rpc_id(1)
 
-# --- СЕТЕВАЯ ЛОГИКА ---
-
 @rpc("any_peer", "reliable")
 func _request_initial_state():
 	if not multiplayer.is_server(): return
@@ -71,7 +67,7 @@ func _request_initial_state():
 			p._force_sync_all.rpc(p.health, p.is_dead, p.team, p.nickname)
 
 func _on_player_disconnected(id: int) -> void:
-	print("Игрок отключился: ", id)
+	print("Player have disconnected: ", id)
 	rpc("remove_player", id)
 
 @rpc("any_peer", "call_local", "reliable")
@@ -80,7 +76,7 @@ func _force_sync_all(s_health: int, s_is_dead: bool, s_team: int, s_nickname: St
 	health = s_health
 	is_dead = s_is_dead
 	team = s_team
-	if s_nickname != "": nickname = s_nickname # Применяем имя
+	if s_nickname != "": nickname = s_nickname
 	_update_visuals()
 
 func _assign_team() -> void:
@@ -94,11 +90,8 @@ func _assign_team() -> void:
 	team = 0 if red <= blue else 1
 	var spawn_pos = spawn_red if team == 0 else spawn_blue
 	
-	# Синхронизируем команду и телепортируем игрока на его базу
 	_force_sync_all.rpc(health, is_dead, team, nickname)
 	_teleport.rpc(spawn_pos)
-
-# --- УПРАВЛЕНИЕ ---
 
 func _physics_process(_delta: float) -> void:
 	_update_visuals()
@@ -119,7 +112,7 @@ func _physics_process(_delta: float) -> void:
 	velocity = direction * SPEED
 	move_and_slide()
 
-	# Поворот за мышкой (Flip)
+	# rotation
 	$Sprite.look_at(get_global_mouse_position())
 	$Sprite.rotation += PI/2
 
@@ -138,16 +131,13 @@ func _physics_process(_delta: float) -> void:
 	if multiplayer.is_server() and not is_dead and health < MAX_HEALTH:
 		time_since_last_hit += _delta
 		
-		# Если прошло достаточно времени без урона
 		if time_since_last_hit >= REGEN_DELAY:
 			regen_timer += _delta
 			if regen_timer >= REGEN_TICK_TIME:
 				regen_timer = 0.0
 				health = min(health + REGEN_AMOUNT, MAX_HEALTH)
-				# Синхронизируем здоровье со всеми
+				# syncing
 				_force_sync_all.rpc(health, is_dead, team, nickname)
-
-# --- ЛОГИКА ПОВЕРХНОСТЕЙ ---
 
 func _check_surface_collision():
 	var field = get_parent().get_parent()
@@ -157,30 +147,26 @@ func _check_surface_collision():
 	var map_pos = ice_layer.local_to_map(ice_layer.to_local(global_position))
 	var ice_tile_id = ice_layer.get_cell_source_id(map_pos)
 	
-	# Проверяем, наступили ли на лед ИЛИ на воду
+	# water or not water? that's the question
 	var water_layer = field.get_node_or_null("water")
 	var on_water = water_layer and water_layer.get_cell_source_id(map_pos) != -1
 	
 	if ice_tile_id != -1 or on_water: 
-		# Если мы на льду/воде — просим СЕРВЕР убить нас
+		# plz kill me
 		if multiplayer.is_server():
-			# Если мы и есть сервер — просто ломаем и умираем
 			if ice_tile_id != -1: _break_ice.rpc(map_pos)
 			take_damage(999, -2)
 		else:
-			# Если мы клиент — отправляем RPC запрос на сервер
 			_request_environment_death.rpc_id(1, map_pos if ice_tile_id != -1 else Vector2i(-1,-1))
 
-# Новый RPC метод для смерти от окружения
 @rpc("any_peer", "reliable")
 func _request_environment_death(map_pos: Vector2i):
 	if not multiplayer.is_server(): return
 	
-	# Если была передана позиция льда — ломаем его для всех
+	# strike the ice!
 	if map_pos != Vector2i(-1, -1):
 		_break_ice.rpc(map_pos)
 	
-	# Наносим смертельный урон (сервер имеет право это делать)
 	take_damage(999, -2)
 
 @rpc("any_peer", "call_local", "reliable")
@@ -206,8 +192,6 @@ func _restore_ice(map_pos: Vector2i, s_id: int, a_coords: Vector2i, alt_tile: in
 	var field = get_parent().get_parent()
 	var ice_layer = field.get_node_or_null("ice")
 	if ice_layer: ice_layer.set_cell(map_pos, s_id, a_coords, alt_tile)
-
-# --- СНЕГ И СТРЕЛЬБА ---
 
 func _try_collect_snow():
 	var hills = get_parent().get_parent().get_node_or_null("hills")
@@ -248,13 +232,11 @@ func _start_cooldown():
 	await get_tree().create_timer(snowball_cooldown).timeout
 	can_shoot = true
 
-# --- УРОН И СМЕРТЬ ---
-
 func take_damage(amount: int, attacker_team: int):
 	if not multiplayer.is_server() or is_dead: return
 	if attacker_team == team: return 
 	
-	time_since_last_hit = 0.0 # Сбрасываем таймер покоя при получении урона
+	time_since_last_hit = 0.0
 	
 	health -= amount
 	if health <= 0:
@@ -292,27 +274,23 @@ func remove_player(id: int):
 	var player_node = container.get_node_or_null(str(id))
 	if player_node:
 		player_node.queue_free()
-		print("Игрок ", id, " удален локально через RPC")
+		print("Player ", id, " is removed")
 
 @rpc("any_peer", "call_local", "reliable")
 func _sync_collision(disabled: bool):
 	if has_node("CollisionShape2D"): $CollisionShape2D.disabled = disabled
 	if disabled: died.emit()
 
-# --- ЧАТ ---
-
 func _input(event: InputEvent) -> void:
 	if not is_multiplayer_authority() or is_dead: return
 	if event is InputEventKey and event.pressed and not event.is_echo():
-		# Реагируем ТОЛЬКО на Enter или Numpad Enter
 		if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
 			if not is_chatting:
 				_start_chatting()
 			else:
-				# Если мы уже в чате, нажатие Enter отправляет текст
 				_stop_chatting_and_send()
 		
-		if event.is_action_pressed("ui_cancel") and is_chatting: # ESC по умолчанию
+		if event.is_action_pressed("ui_cancel") and is_chatting:
 			_cancel_chatting()
 
 func _cancel_chatting():
@@ -329,13 +307,8 @@ func _start_chatting():
 		is_chatting = true
 		chat_input.show()
 		
-		# Делаем LineEdit доступным для фокуса
 		chat_input.focus_mode = Control.FOCUS_ALL 
-		
-		# Вызываем захват фокуса в конце текущего кадра (это решает 99% проблем)
 		chat_input.call_deferred("grab_focus")
-		
-		# Очищаем поле от случайного "Enter", который мог туда попасть
 		chat_input.text = ""
 
 func _stop_chatting_and_send():
@@ -347,12 +320,10 @@ func _stop_chatting_and_send():
 		
 		chat_input.text = ""
 		chat_input.hide()
-		# Отдаем фокус обратно «в никуда», чтобы клавиши снова считывались игроком
 		chat_input.release_focus() 
 	
 	is_chatting = false
 
-# Функция отображения текста над головой (на всех клиентах)
 @rpc("any_peer", "call_local", "reliable")
 func send_bubble_text(message: String):
 	var label = get_node_or_null("ChatLabel")
@@ -363,8 +334,6 @@ func send_bubble_text(message: String):
 		if label.text == message:
 			label.hide()
 
-# --- ВИЗУАЛ ---
-
 func _update_visuals():
 	var hb = get_node_or_null("HealthBar")
 	var name_label = get_node_or_null("NameLabel")
@@ -372,9 +341,9 @@ func _update_visuals():
 	
 	if hb: hb.value = health
 	
-	if is_multiplayer_authority():
-		var status = " [ЛЕПКА...]" if is_reloading else ""
-		DisplayServer.window_set_title("Снежки: " + str(ammo) + "/10" + status)
+	#if is_multiplayer_authority():
+		#var status = " [making a snowball...]" if is_reloading else ""
+		#DisplayServer.window_set_title("Snowballs: " + str(ammo) + "/10" + status)
 	
 	if not sprite: return
 	
@@ -385,9 +354,8 @@ func _update_visuals():
 		sprite.modulate = Color.WHITE
 		if name_label: 
 			name_label.show()
-			name_label.text = nickname # Чтобы текст всегда соответствовал переменной
+			name_label.text = nickname
 		
-		# Установка скина и цвета ника по команде
 		if team == 0:
 			sprite.texture = RED_TEXTURE
 			if name_label: name_label.modulate = Color(1, 0.3, 0.3)
@@ -426,7 +394,6 @@ func _create_base_appearance():
 		add_child(hb)
 
 func _load_name(nl):
-	# Только владелец персонажа читает свой файл
 	if is_multiplayer_authority():
 		var file = FileAccess.open("user://username.txt", FileAccess.READ)
 		if file:
@@ -434,10 +401,8 @@ func _load_name(nl):
 		else:
 			nickname = "Player_" + str(multiplayer.get_unique_id())
 		
-		# Отправляем свое имя серверу, чтобы он разослал остальным
 		_sync_nickname.rpc(nickname)
 	
-	# Настройка внешнего вида Label
 	nl.text = nickname
 	nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var custom_font = load("res://assets/fonts/8bitoperator_jve.ttf")
@@ -446,7 +411,6 @@ func _load_name(nl):
 	nl.custom_minimum_size = Vector2(100, 20)
 	nl.position = Vector2(-50, -65)
 
-# Этот метод обновит имя у всех игроков
 @rpc("any_peer", "call_local", "reliable")
 func _sync_nickname(new_name: String):
 	nickname = new_name

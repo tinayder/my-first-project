@@ -2,7 +2,7 @@ extends StaticBody2D
 
 @export var red_texture: Texture2D = preload("res://assets/images/base1.png")
 @export var blue_texture: Texture2D = preload("res://assets/images/base2.png")
-@export var team: int = 0 # 0 для красных, 1 для синих
+@export var team: int = 0 # 0 is red, 1 is blue
 @export var health: int = 500
 var max_health: int = 500
 
@@ -16,20 +16,18 @@ func _ready():
 	$HealthBar.max_value = max_health
 	$HealthBar.value = health
 	
-	# РЕШЕНИЕ: Если мы клиент, запрашиваем у сервера актуальное ХП этой базы
+	# if client, asking for hp of the igloo
 	if not multiplayer.is_server():
 		_request_initial_hp.rpc_id(1)
 
-# --- СЕТЕВАЯ СИНХРОНИЗАЦИЯ ---
-
-# 1. Клиент просит сервер прислать ХП
+# request for current hp
 @rpc("any_peer", "reliable")
 func _request_initial_hp():
 	if multiplayer.is_server():
-		# Отправляем ответ ТОЛЬКО тому, кто попросил (sender_id)
+		# sending 
 		_sync_hp.rpc_id(multiplayer.get_remote_sender_id(), health)
 
-# 2. Сервер рассылает ХП (вызывается и для всех, и персонально)
+# syncing
 @rpc("authority", "call_local", "reliable")
 func _sync_hp(new_hp: int):
 	health = new_hp
@@ -37,14 +35,11 @@ func _sync_hp(new_hp: int):
 		$HealthBar.value = health
 	_check_destruction()
 
-# --- ЛОГИКА УРОНА ---
-
 func take_damage(amount: int, attacker_team: int):
 	if not multiplayer.is_server() or health <= 0: return
 	if attacker_team == team: return 
 	
 	health -= amount
-	# Рассылаем всем текущим игрокам
 	_sync_hp.rpc(health)
 
 func _check_destruction():

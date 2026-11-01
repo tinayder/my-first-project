@@ -16,7 +16,7 @@ func stop_multiplayer() -> void:
 	if multiplayer.multiplayer_peer:
 		multiplayer.multiplayer_peer.close()
 		multiplayer.multiplayer_peer = null
-		print("Соединение закрыто, порт освобожден.")
+		print("Connection closed")
 
 func stop_server() -> void:
 	if !multiplayer.is_server(): return

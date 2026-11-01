@@ -13,7 +13,6 @@ func _ready():
 	$All/LocalMenu/Create/OptionButton.item_selected.connect(_on_map_changed)
 	$All/LocalMenu/Create/OptionButton.select(0)
 	
-	# Подключаем сигнал успешного подключения
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 
@@ -42,10 +41,8 @@ func _on_join_button_pressed():
 		var ip = $All/LocalMenu/Join/ip.text
 		var port = $All/LocalMenu/Join/portjoin.text.to_int()
 		Handler.start_client(ip, port)
-		print("Connected to the SERVER")
-		# Сцена меняется автоматически по сигналу connected_to_server
+		print("Connecting to the SERVER")
 
-# Сигнал при успешном подключении к серверу
 func _on_connected_to_server():
 	print("Successfully connected to server")
 	var port = $All/LocalMenu/Join/portjoin.text.to_int()
@@ -54,7 +51,6 @@ func _on_connected_to_server():
 	else:
 		get_tree().change_scene_to_file("res://scenes/Lake.tscn")
 
-# Сигнал при отключении от сервера
 func _on_server_disconnected():
 	print("Disconnected from server")
 	get_tree().change_scene_to_file("res://scenes/lobby.tscn")
